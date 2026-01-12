@@ -17,13 +17,22 @@ impl Parser {
         let mut statements = Vec::new();
         while !self.is_at_end() {
             match self.peek() {
-                Token::Func => statements.push(self.parse_function(symbols)),
-                Token::Val => statements.push(self.parse_declaration()),
+                // Skip empty lines between top-level statements
                 Token::Newline => { self.advance(); }
-                _ => statements.push(Stmt::Expression(self.parse_expr())),
+                _ => statements.push(self.parse_statement(symbols)),
             }
         }
         statements
+    }
+
+    fn parse_statement(&mut self, symbols: &mut SymbolTable) -> Stmt {
+        match self.peek() {
+            Token::Val => self.parse_declaration(),
+            Token::If => self.parse_if(symbols),
+            Token::While => self.parse_while(symbols),
+            Token::LBrace => self.parse_block(symbols),
+            _ => Stmt::Expression(self.parse_expr()),
+        }
     }
 
     // --- Expression Parsing (Recursive Descent) ---
@@ -66,7 +75,10 @@ impl Parser {
         match self.advance() {
             Token::Number(val) => Expr::Integer(val as i32),
             Token::Identifier(name) => Expr::Variable(name),
-            _ => panic!("Expected expression, found {:?}", self.peek()),
+            tok => panic!(
+                "Unexpected token in expression: {:?}. Expected a number or identifier.",
+                tok
+            ),
         }
     }
 
@@ -101,6 +113,45 @@ impl Parser {
         
         let initializer = self.parse_expr();
         Stmt::VarDecl(name, initializer)
+    }
+
+    fn parse_block(&mut self, symbols: &mut SymbolTable) -> Stmt {
+        self.advance(); // skip '{'
+        let mut statements = Vec::new();
+        
+        while !self.is_at_end() && self.peek() != Token::RBrace {
+            if self.peek() == Token::Newline { self.advance(); continue; }
+            statements.push(self.parse_statement(symbols));
+        }
+
+        if self.peek() == Token::RBrace {
+            self.advance(); // skip '}'
+        } else {
+            panic!("Expected '}}' after block");
+        }
+        
+        Stmt::Block(statements)
+    }
+
+    fn parse_if(&mut self, symbols: &mut SymbolTable) -> Stmt {
+        self.advance(); // skip 'if'
+        let condition = self.parse_expr();
+        let then_branch = Box::new(self.parse_statement(symbols));
+        let mut else_branch = None;
+
+        if self.peek() == Token::Else {
+            self.advance();
+            else_branch = Some(Box::new(self.parse_statement(symbols)));
+        }
+
+        Stmt::If(condition, then_branch, else_branch)
+    }
+
+    fn parse_while(&mut self, symbols: &mut SymbolTable) -> Stmt {
+        self.advance(); // skip 'while'
+        let condition = self.parse_expr();
+        let body = Box::new(self.parse_statement(symbols));
+        Stmt::While(condition, body)
     }
 
     fn peek(&self) -> Token { self.tokens[self.pos].clone() }

@@ -3,6 +3,7 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Val, Mut, Func, Class, Return, Print,
+    If, Else, While,
     Identifier(String),
     Number(i64),
     StringLit(String),
@@ -61,6 +62,9 @@ impl Lexer {
             "class" => Token::Class,
             "return" => Token::Return,
             "print" => Token::Print,
+            "if" => Token::If,
+            "else" => Token::Else,
+            "while" => Token::While,
             _ => Token::Identifier(text),
         }
     }

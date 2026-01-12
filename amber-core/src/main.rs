@@ -3,6 +3,7 @@ mod parser;
 mod semant;
 mod codegen;
 mod ast;
+use codegen::bytecode::OpCode;
 
 use std::env;
 use std::fs;
@@ -29,14 +30,13 @@ fn main() {
     let mut symbols = SymbolTable::new();
     let mut parser = Parser::new(tokens);
     let ast = parser.parse(&mut symbols);
-    println!("DEBUG AST: {:#?}", ast);
 
     // 3. Emit
     let mut emitter = Emitter::new();
     for stmt in ast {
         emitter.emit_stmt(&stmt, &mut symbols);
     }
-    emitter.emit_byte(0x00); // OP_HALT (End of program)
+    emitter.emit_byte(OpCode::Halt.into());
 
     let output_path = filename.replace(".amb", ".amc");
     emitter.write_file(&output_path).expect("Failed to write file");

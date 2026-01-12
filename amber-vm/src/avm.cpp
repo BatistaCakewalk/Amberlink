@@ -1,5 +1,7 @@
 #include "avm.hpp"
+#include "bytecode.hpp"
 #include <iostream>
+#include <vector>
 #include <stack>
 #include <stdexcept>
 #include <cstring> // For std::memcpy
@@ -33,32 +35,40 @@ void execute(const std::vector<uint8_t>& bytecode) {
         while (ip < end) {
             uint8_t instruction = *ip++;
             switch (instruction) {
-                case 0x01: { // OP_PUSH
-                    // Safe unaligned read using memcpy
+                // --- Control Flow ---
+                case OP_HALT: {
+                    return; // End execution
+                }
+                case OP_JUMP: {
+                    int32_t offset;
+                    std::memcpy(&offset, ip, sizeof(int32_t));
+                    ip += 4;      // Consume the 4-byte offset from the instruction stream
+                    ip += offset; // Apply the relative jump
+                    break;
+                }
+                case OP_JUMP_IF_FALSE: {
+                    int32_t offset;
+                    std::memcpy(&offset, ip, sizeof(int32_t));
+                    ip += 4; // Advance past the offset bytes
+
+                    if (vm_stack.empty()) throw std::runtime_error("Stack underflow during JUMP_IF_FALSE.");
+                    int32_t condition = vm_stack.back(); vm_stack.pop_back();
+                    
+                    if (condition == 0) { // 0 is False
+                        ip += offset;
+                    }
+                    break;
+                }
+
+                // --- Constants & Variables ---
+                case OP_PUSH: {
                     int32_t value;
                     std::memcpy(&value, ip, sizeof(int32_t));
                     vm_stack.push_back(value);
                     ip += sizeof(int32_t);
                     break;
                 }
-                case 0x02: BINARY_OP(+); break; // OP_ADD
-                case 0x03: BINARY_OP(-); break; // OP_SUB
-                case 0x04: BINARY_OP(*); break; // OP_MUL
-                case 0x05: { // OP_DIV
-                    if (vm_stack.size() < 2) throw std::runtime_error("Stack underflow during DIV.");
-                    int32_t b = vm_stack.back(); vm_stack.pop_back();
-                    if (b == 0) throw std::runtime_error("Division by zero.");
-                    int32_t a = vm_stack.back(); vm_stack.pop_back();
-                    vm_stack.push_back(a / b);
-                    break;
-                }
-                case 0x06: { // OP_PRINT
-                    if (vm_stack.empty()) throw std::runtime_error("Stack underflow during PRINT.");
-                    std::cout << "Amber Out: " << vm_stack.back() << std::endl;
-                    vm_stack.pop_back();
-                    break;
-                }
-                case 0x07: { // OP_STORE (Global)
+                case OP_STORE_GLOBAL: {
                     int32_t index;
                     std::memcpy(&index, ip, sizeof(int32_t));
                     ip += sizeof(int32_t);
@@ -71,7 +81,7 @@ void execute(const std::vector<uint8_t>& bytecode) {
                     globals[index] = val;
                     break;
                 }
-                case 0x08: { // OP_LOAD (Global)
+                case OP_LOAD_GLOBAL: {
                     int32_t index;
                     std::memcpy(&index, ip, sizeof(int32_t));
                     ip += sizeof(int32_t);
@@ -80,12 +90,24 @@ void execute(const std::vector<uint8_t>& bytecode) {
                     vm_stack.push_back(globals[index]);
                     break;
                 }
-                case 0xFF: { // OP_HALT
-                    if (!vm_stack.empty()) {
-                        std::cout << "Result: " << vm_stack.back() << std::endl;
-                    }
-                    return; // End execution
+
+                // --- Arithmetic & Logic ---
+                case OP_ADD: BINARY_OP(+); break;
+                case OP_SUB: BINARY_OP(-); break;
+                case OP_MUL: BINARY_OP(*); break;
+                case OP_DIV: {
+                    if (vm_stack.size() < 2) throw std::runtime_error("Stack underflow during DIV.");
+                    int32_t b = vm_stack.back(); vm_stack.pop_back();
+                    if (b == 0) throw std::runtime_error("Division by zero.");
+                    int32_t a = vm_stack.back(); vm_stack.pop_back();
+                    vm_stack.push_back(a / b);
+                    break;
                 }
+
+                // --- Utilities ---
+                case OP_POP: vm_stack.pop_back(); break;
+                case OP_PRINT: std::cout << "Amber Out: " << vm_stack.back() << std::endl; vm_stack.pop_back(); break;
+
                 default: {
                     throw std::runtime_error("Unknown opcode encountered.");
                 }

@@ -27,6 +27,7 @@ Unlike the heavy, unpredictable JVM Garbage Collector, the Amber-VM uses a Lean 
 Amberlink/
 ├── amber-core/    # Rust: Lexer, Parser, Emitter
 ├── amber-vm/      # C++: Interpreter, GC, Loader
+├── amber-native/  # 
 ├── bin/           # Final tool binaries (ambc, avm)
 ├── stdlib/        # Standard Amberlink libraries
 └── scripts/       # Python build automation

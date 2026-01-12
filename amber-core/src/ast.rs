@@ -16,6 +16,9 @@ pub enum Expr {
 #[derive(Debug, Clone)]
 pub enum Stmt {
     VarDecl(String, Expr),
+    Block(Vec<Stmt>),
+    If(Expr, Box<Stmt>, Option<Box<Stmt>>), // Condition, Then, Else
+    While(Expr, Box<Stmt>),                 // Condition, Body
     Expression(Expr),
     Function(String), // Placeholder for now
 }
