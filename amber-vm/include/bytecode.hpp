@@ -1,18 +1,10 @@
 // amber-vm/include/bytecode.hpp
 #pragma once
-#include <vector>
+#include <cstdint>
 
-namespace AVM {
-    enum OpCode {
-        PUSH_CONST,  // Push a value to the stack
-        CALL_FUNC,   // Call a standalone function
-        INVOKE_METH, // Call a class method
-        STORE_VAR,   // Save to memory
-        HALT
-    };
-
-    struct Bytecode {
-        OpCode op;
-        int arg;
-    };
-}
+enum OpCode : uint8_t {
+    OP_PUSH  = 0x01, // Followed by 4-byte int
+    OP_ADD   = 0x02,
+    OP_PRINT = 0x03,
+    OP_HALT  = 0xFF
+};
