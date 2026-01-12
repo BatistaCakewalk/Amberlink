@@ -1,5 +1,6 @@
-📄 Amberlink: Technical Specification
+# 📄 Amberlink: Technical Specification
 Amberlink is a high-performance, multi-paradigm programming language designed to bridge the gap between the safety of Java and the raw power of C++. It utilizes a unique Dual-Backend approach, allowing code to run either on a dedicated Virtual Machine (AVM) or as a native binary.
+
 1. System Architecture
 Amberlink is split into two primary components to ensure memory safety and execution speed:
 • The Brain (Amber-Core): Built in Rust. It handles the frontend tasks: Lexing, Parsing, Semantic Analysis, and Bytecode Generation. Using Rust ensures the compiler is immune to memory-related crashes.
