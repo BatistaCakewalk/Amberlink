@@ -1,0 +1,7 @@
+[package]
+name = "amber-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# No heavy dependencies needed for our lean core
