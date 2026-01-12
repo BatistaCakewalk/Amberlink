@@ -18,6 +18,7 @@ impl Parser {
         while !self.is_at_end() {
             match self.peek() {
                 Token::Func => statements.push(self.parse_function(symbols)),
+                Token::Val => statements.push(self.parse_declaration()),
                 Token::Newline => { self.advance(); }
                 _ => statements.push(Stmt::Expression(self.parse_expr())),
             }
@@ -64,14 +65,42 @@ impl Parser {
     fn parse_primary(&mut self) -> Expr {
         match self.advance() {
             Token::Number(val) => Expr::Integer(val as i32),
+            Token::Identifier(name) => Expr::Variable(name),
             _ => panic!("Expected expression, found {:?}", self.peek()),
         }
     }
 
-    fn parse_function(&mut self, _symbols: &mut SymbolTable) -> Stmt {
+    fn parse_function(&mut self, symbols: &mut SymbolTable) -> Stmt {
         self.advance(); // skip 'func'
-        // TODO: Parse name and body
-        Stmt::Function("unknown".to_string())
+        
+        let name_token = self.advance();
+        let name = match name_token {
+            Token::Identifier(n) => n,
+            _ => panic!("Expected function name, found {:?}", name_token),
+        };
+
+        // Register function in the symbol table (Pass 1: Discovery)
+        symbols.functions.insert(name.clone(), crate::semant::FunctionInfo {
+            name: name.clone(),
+            address: 0, // Placeholder: Will be resolved during emission
+        });
+
+        // TODO: Parse parameters and body block
+        Stmt::Function(name)
+    }
+
+    fn parse_declaration(&mut self) -> Stmt {
+        self.advance(); // skip 'val'
+        
+        let name = match self.advance() {
+            Token::Identifier(n) => n,
+            _ => panic!("Expected variable name"),
+        };
+
+        if self.advance() != Token::Equals { panic!("Expected '=' after variable name"); }
+        
+        let initializer = self.parse_expr();
+        Stmt::VarDecl(name, initializer)
     }
 
     fn peek(&self) -> Token { self.tokens[self.pos].clone() }

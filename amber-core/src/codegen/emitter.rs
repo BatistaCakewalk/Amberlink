@@ -2,6 +2,8 @@
 use std::fs::File;
 use std::io::{Write, BufWriter};
 use crate::ast::{Expr, Op};
+use crate::ast::Stmt;
+use crate::semant::SymbolTable;
 
 pub struct Emitter {
     pub code: Vec<u8>,
@@ -15,15 +17,21 @@ impl Emitter {
         self.code.extend_from_slice(&val.to_le_bytes());
     }
 
-    pub fn emit_expr(&mut self, expr: &Expr) {
+    pub fn emit_expr(&mut self, expr: &Expr, symbols: &mut SymbolTable) {
         match expr {
             Expr::Integer(val) => {
                 self.emit_byte(0x01); // OP_PUSH
                 self.emit_int(*val);
             }
+            Expr::Variable(name) => {
+                let index = symbols.variables.get(name)
+                    .expect(&format!("Undefined variable: {}", name));
+                self.emit_byte(0x08); // OP_LOAD
+                self.emit_int(*index as i32);
+            }
             Expr::Binary(left, op, right) => {
-                self.emit_expr(left);
-                self.emit_expr(right);
+                self.emit_expr(left, symbols);
+                self.emit_expr(right, symbols);
                 match op {
                     Op::Add => self.emit_byte(0x02),
                     Op::Sub => self.emit_byte(0x03),
@@ -31,6 +39,27 @@ impl Emitter {
                     Op::Div => self.emit_byte(0x05),
                 }
             }
+        }
+    }
+
+    pub fn emit_stmt(&mut self, stmt: &Stmt, symbols: &mut SymbolTable) {
+        match stmt {
+            Stmt::VarDecl(name, expr) => {
+                self.emit_expr(expr, symbols); // Push value
+                
+                // Assign index
+                let index = symbols.next_var_index;
+                symbols.variables.insert(name.clone(), index);
+                symbols.next_var_index += 1;
+
+                self.emit_byte(0x07); // OP_STORE
+                self.emit_int(index as i32);
+            }
+            Stmt::Expression(expr) => {
+                self.emit_expr(expr, symbols);
+                // Note: In a full language, we might pop here to keep stack clean
+            }
+            _ => {} // Skip functions for now
         }
     }
 

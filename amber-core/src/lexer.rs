@@ -2,7 +2,7 @@
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
-    Val, Mut, Func, Class, Return,
+    Val, Mut, Func, Class, Return, Print,
     Identifier(String),
     Number(i64),
     StringLit(String),
@@ -32,12 +32,15 @@ impl Lexer {
                 '=' => { tokens.push(Token::Equals); self.pos += 1; }
                 '+' => { tokens.push(Token::Plus); self.pos += 1; }
                 '-' => { tokens.push(Token::Minus); self.pos += 1; }
+                '*' => { tokens.push(Token::Star); self.pos += 1; }
+                '/' => { tokens.push(Token::Slash); self.pos += 1; }
                 '(' => { tokens.push(Token::LParen); self.pos += 1; }
                 ')' => { tokens.push(Token::RParen); self.pos += 1; }
                 '{' => { tokens.push(Token::LBrace); self.pos += 1; }
                 '}' => { tokens.push(Token::RBrace); self.pos += 1; }
                 'a'..='z' | 'A'..='Z' | '_' => tokens.push(self.read_identifier()),
                 '0'..='9' => tokens.push(self.read_number()),
+                '"' => tokens.push(self.read_string()),
                 _ => { self.pos += 1; } // Skip unknowns
             }
         }
@@ -57,6 +60,7 @@ impl Lexer {
             "func" => Token::Func,
             "class" => Token::Class,
             "return" => Token::Return,
+            "print" => Token::Print,
             _ => Token::Identifier(text),
         }
     }
@@ -68,5 +72,16 @@ impl Lexer {
         }
         let text: String = self.input[start..self.pos].iter().collect();
         Token::Number(text.parse().unwrap())
+    }
+
+    fn read_string(&mut self) -> Token {
+        self.pos += 1; // Skip opening quote
+        let start = self.pos;
+        while self.pos < self.input.len() && self.input[self.pos] != '"' {
+            self.pos += 1;
+        }
+        let text: String = self.input[start..self.pos].iter().collect();
+        if self.pos < self.input.len() { self.pos += 1; } // Skip closing quote
+        Token::StringLit(text)
     }
 }

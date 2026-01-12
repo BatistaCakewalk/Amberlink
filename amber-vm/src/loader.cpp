@@ -1,23 +1,37 @@
-// amber-vm/src/loader.cpp
 #include "avm.hpp"
 #include <fstream>
 #include <iostream>
+#include <cstring>
 
-bool Loader::load(const std::string& path, std::vector<uint8_t>& buffer) {
-    std::ifstream file(path, std::ios::binary);
-    if (!file) return false;
+namespace Loader {
+    bool load(const char* filename, std::vector<uint8_t>& bytecode) {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file) {
+            std::cerr << "Error: Could not open file " << filename << std::endl;
+            return false;
+        }
 
-    char magic[4];
-    file.read(magic, 4); // Read "AMBR"
-    
-    uint16_t version;
-    file.read((char*)&version, 2);
+        // 1. Verify Magic Header "AMBR"
+        char magic[4];
+        file.read(magic, 4);
+        if (std::strncmp(magic, "AMBR", 4) != 0) {
+            std::cerr << "Error: Invalid file format. Expected 'AMBR' header." << std::endl;
+            return false;
+        }
 
-    uint32_t entry, len;
-    file.read((char*)&entry, 4);
-    file.read((char*)&len, 4);
+        // 2. Skip Version (2 bytes) and Entry Point (4 bytes)
+        file.ignore(6);
 
-    buffer.resize(len);
-    file.read((char*)buffer.data(), len);
-    return true;
+        // 3. Read Code Length
+        uint32_t codeLength;
+        file.read(reinterpret_cast<char*>(&codeLength), 4);
+
+        // 4. Read Bytecode
+        if (codeLength > 0) {
+            bytecode.resize(codeLength);
+            file.read(reinterpret_cast<char*>(bytecode.data()), codeLength);
+        }
+
+        return true;
+    }
 }

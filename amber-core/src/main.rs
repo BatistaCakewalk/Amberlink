@@ -34,12 +34,9 @@ fn main() {
     // 3. Emit
     let mut emitter = Emitter::new();
     for stmt in ast {
-        match stmt {
-            crate::ast::Stmt::Expression(expr) => emitter.emit_expr(&expr),
-            _ => {} // Skip functions for now
-        }
+        emitter.emit_stmt(&stmt, &mut symbols);
     }
-    emitter.emit_byte(0xFF); // OP_HALT (End of program)
+    emitter.emit_byte(0x00); // OP_HALT (End of program)
 
     let output_path = filename.replace(".amb", ".amc");
     emitter.write_file(&output_path).expect("Failed to write file");
