@@ -1,25 +1,18 @@
-// amber-vm/include/heap.hpp
-#pragma once
+#ifndef HEAP_HPP
+#define HEAP_HPP
+
 #include <vector>
-#include <cstdint>
+#include <cstddef>
 
 struct AmberObject {
     bool marked;
-    uint32_t type;
-    // Data follows in memory
 };
 
 class Heap {
+    std::vector<AmberObject*> objects;
 public:
-    static Heap& getInstance() {
-        static Heap instance;
-        return instance;
-    }
-
     void* allocate(size_t size);
     void collect();
-
-private:
-    std::vector<AmberObject*> objects;
-    Heap() = default;
 };
+
+#endif

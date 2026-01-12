@@ -37,6 +37,7 @@ fn main() {
         emitter.emit_stmt(&stmt, &mut symbols);
     }
     emitter.emit_byte(OpCode::Halt.into());
+    emitter.finalize(&symbols); // Patch function calls
 
     let output_path = filename.replace(".amb", ".amc");
     emitter.write_file(&output_path).expect("Failed to write file");

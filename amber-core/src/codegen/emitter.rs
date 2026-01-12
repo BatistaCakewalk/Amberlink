@@ -8,10 +8,11 @@ use crate::semant::SymbolTable;
 
 pub struct Emitter {
     pub code: Vec<u8>,
+    pub calls_to_patch: Vec<(usize, String)>, // (Bytecode Index, Function Name)
 }
 
 impl Emitter {
-    pub fn new() -> Self { Self { code: Vec::new() } }
+    pub fn new() -> Self { Self { code: Vec::new(), calls_to_patch: Vec::new() } }
 
     pub fn emit_byte(&mut self, b: u8) { self.code.push(b); }
     pub fn emit_int(&mut self, val: i32) {
@@ -25,10 +26,25 @@ impl Emitter {
                 self.emit_int(*val);
             }
             Expr::Variable(name) => {
-                let index = symbols.variables.get(name)
-                    .expect(&format!("Undefined variable: {}", name));
-                self.emit_byte(OpCode::LoadGlobal.into());
-                self.emit_int(*index as i32);
+                if let Some(index) = symbols.locals.get(name) {
+                    self.emit_byte(OpCode::LoadLocal.into());
+                    self.emit_int(*index as i32);
+                } else {
+                    let index = symbols.variables.get(name)
+                        .expect(&format!("Undefined variable: {}", name));
+                    self.emit_byte(OpCode::LoadGlobal.into());
+                    self.emit_int(*index as i32);
+                }
+            }
+            Expr::Call(name, args) => {
+                for arg in args {
+                    self.emit_expr(arg, symbols);
+                }
+                self.emit_byte(OpCode::Call.into());
+                
+                // Emit placeholder address and record for patching
+                self.calls_to_patch.push((self.code.len(), name.clone()));
+                self.emit_int(0); 
             }
             Expr::Binary(left, op, right) => {
                 self.emit_expr(left, symbols);
@@ -38,6 +54,7 @@ impl Emitter {
                     Op::Sub => self.emit_byte(OpCode::Sub.into()),
                     Op::Mul => self.emit_byte(OpCode::Mul.into()),
                     Op::Div => self.emit_byte(OpCode::Div.into()),
+                    Op::LessThan => self.emit_byte(OpCode::Less.into()),
                 }
             }
         }
@@ -61,6 +78,18 @@ impl Emitter {
         }
     }
 
+    pub fn finalize(&mut self, symbols: &SymbolTable) {
+        for (index, name) in &self.calls_to_patch {
+            let func_info = symbols.functions.get(name)
+                .expect(&format!("Undefined function: {}", name));
+            
+            let bytes = (func_info.address as i32).to_le_bytes();
+            for i in 0..4 {
+                self.code[index + i] = bytes[i];
+            }
+        }
+    }
+
     pub fn emit_stmt(&mut self, stmt: &Stmt, symbols: &mut SymbolTable) {
         match stmt {
             Stmt::VarDecl(name, expr) => {
@@ -73,6 +102,14 @@ impl Emitter {
 
                 self.emit_byte(OpCode::StoreGlobal.into());
                 self.emit_int(index as i32);
+            }
+            Stmt::Return(expr) => {
+                self.emit_expr(expr, symbols);
+                self.emit_byte(OpCode::Return.into());
+            }
+            Stmt::Print(expr) => {
+                self.emit_expr(expr, symbols);
+                self.emit_byte(OpCode::Print.into());
             }
             Stmt::Block(stmts) => {
                 for s in stmts {
@@ -116,7 +153,39 @@ impl Emitter {
                 // An expression used as a statement should have its result popped.
                 self.emit_byte(OpCode::Pop.into());
             }
-            _ => {} // Skip functions for now
+            Stmt::Function(name, params, body) => {
+                // 1. Jump over the function body so it doesn't execute linearly
+                let jump_over = self.emit_jump(OpCode::Jump.into());
+
+                // 2. Record function entry point
+                let entry_point = self.code.len() as u32;
+                if let Some(info) = symbols.functions.get_mut(name) {
+                    info.address = entry_point;
+                }
+
+                // Setup locals for emission
+                let old_locals = symbols.locals.clone();
+                let old_local_index = symbols.next_local_index;
+                symbols.locals.clear();
+                symbols.next_local_index = 0;
+
+                for param in params {
+                    symbols.locals.insert(param.clone(), symbols.next_local_index);
+                    symbols.next_local_index += 1;
+                }
+
+                // 3. Emit Body
+                for s in body {
+                    self.emit_stmt(s, symbols);
+                }
+                
+                self.emit_byte(OpCode::Return.into()); // Implicit return
+                self.patch_jump(jump_over);
+
+                // Restore locals
+                symbols.locals = old_locals;
+                symbols.next_local_index = old_local_index;
+            }
         }
     }
 

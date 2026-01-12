@@ -30,8 +30,9 @@ def build():
     
     # Copy Rust binary to /bin
     rust_bin_name = "amber-core.exe" if os.name == "nt" else "amber-core"
+    dest_rust_name = "ambc.exe" if os.name == "nt" else "ambc"
     shutil.copy(os.path.join(core_dir, "target", "release", rust_bin_name), 
-                os.path.join(bin_dir, "ambc"))
+                os.path.join(bin_dir, dest_rust_name))
 
     # 3. Build Amber-VM (C++)
     vm_dir = os.path.join(root_dir, "amber-vm")
@@ -45,12 +46,18 @@ def build():
 
     # Copy C++ binary to /bin
     cpp_bin_name = "avm.exe" if os.name == "nt" else "avm"
-    shutil.copy(os.path.join(build_dir, cpp_bin_name), 
-                os.path.join(bin_dir, "avm"))
+    
+    # Handle MSVC Release subfolder on Windows
+    src_avm = os.path.join(build_dir, cpp_bin_name)
+    if os.name == "nt" and not os.path.exists(src_avm):
+        src_avm = os.path.join(build_dir, "Release", cpp_bin_name)
+
+    dest_avm_name = "avm.exe" if os.name == "nt" else "avm"
+    shutil.copy(src_avm, os.path.join(bin_dir, dest_avm_name))
 
     print(f"\n{GREEN}Success!{RESET} Amberlink is ready.")
-    print(f"Compiler: {os.path.join(bin_dir, 'ambc')}")
-    print(f"VM:       {os.path.join(bin_dir, 'avm')}")
+    print(f"Compiler: {os.path.join(bin_dir, dest_rust_name)}")
+    print(f"VM:       {os.path.join(bin_dir, dest_avm_name)}")
 
 if __name__ == "__main__":
     build()

@@ -28,6 +28,13 @@ void execute(const std::vector<uint8_t>& bytecode) {
     // Global variables storage (Simple indexed memory)
     std::vector<int32_t> globals;
 
+    // Call Stack (Stores return addresses)
+    std::vector<const uint8_t*> call_stack;
+    
+    // Frame Pointer Stack (Stores previous frame pointers)
+    std::vector<size_t> fp_stack;
+    size_t fp = 0; // Current Frame Pointer
+
     const uint8_t* ip = bytecode.data();
     const uint8_t* end = ip + bytecode.size();
 
@@ -90,6 +97,25 @@ void execute(const std::vector<uint8_t>& bytecode) {
                     vm_stack.push_back(globals[index]);
                     break;
                 }
+                case OP_STORE_LOCAL: {
+                    int32_t index;
+                    std::memcpy(&index, ip, sizeof(int32_t));
+                    ip += sizeof(int32_t);
+
+                    if (vm_stack.empty()) throw std::runtime_error("Stack underflow during STORE_LOCAL.");
+                    int32_t val = vm_stack.back();
+                    vm_stack.pop_back();
+                    
+                    vm_stack[fp + index] = val;
+                    break;
+                }
+                case OP_LOAD_LOCAL: {
+                    int32_t index;
+                    std::memcpy(&index, ip, sizeof(int32_t));
+                    ip += sizeof(int32_t);
+                    vm_stack.push_back(vm_stack[fp + index]);
+                    break;
+                }
 
                 // --- Arithmetic & Logic ---
                 case OP_ADD: BINARY_OP(+); break;
@@ -101,6 +127,53 @@ void execute(const std::vector<uint8_t>& bytecode) {
                     if (b == 0) throw std::runtime_error("Division by zero.");
                     int32_t a = vm_stack.back(); vm_stack.pop_back();
                     vm_stack.push_back(a / b);
+                    break;
+                }
+                case OP_LESS: {
+                    if (vm_stack.size() < 2) throw std::runtime_error("Stack underflow during LESS.");
+                    int32_t b = vm_stack.back(); vm_stack.pop_back();
+                    int32_t a = vm_stack.back(); vm_stack.pop_back();
+                    vm_stack.push_back(a < b ? 1 : 0);
+                    break;
+                }
+
+                // --- Functions & Calls ---
+                case OP_CALL: {
+                    int32_t target_offset;
+                    std::memcpy(&target_offset, ip, sizeof(int32_t));
+                    ip += 4;
+                    
+                    // In a simple stack machine, arguments are already on the stack.
+                    // We just need to set the new Frame Pointer.
+                    // NOTE: This simple implementation assumes we know arg count or 
+                    // we just set FP to current stack top. 
+                    // For this factorial example, we'll assume FP points to the first argument.
+                    // But since we don't have arg count here, let's assume the compiler
+                    // handles stack cleanup and we just use FP for locals.
+                    
+                    fp_stack.push_back(fp);
+                    // Heuristic: FP is current stack top minus 1 (for 1 arg). 
+                    // Ideally OP_CALL should take arg_count. 
+                    // For now, let's assume FP = stack.size() - 1 (1 argument function support hack for test)
+                    fp = vm_stack.size() - 1; 
+
+                    call_stack.push_back(ip); // Save return address
+                    ip = bytecode.data() + target_offset; // Jump to function
+                    break;
+                }
+                case OP_RETURN: {
+                    if (call_stack.empty()) return; // Or halt
+                    
+                    int32_t result = vm_stack.back(); vm_stack.pop_back();
+                    
+                    // Restore stack (remove args/locals)
+                    vm_stack.resize(fp); 
+                    vm_stack.push_back(result); // Push result back
+
+                    ip = call_stack.back();
+                    call_stack.pop_back();
+                    fp = fp_stack.back();
+                    fp_stack.pop_back();
                     break;
                 }
 

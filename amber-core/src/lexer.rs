@@ -2,12 +2,13 @@
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
-    Val, Mut, Func, Class, Return, Print,
+    Var, Mut, Func, Class, Return, Print,
+    Int, Void, // Types
     If, Else, While,
     Identifier(String),
     Number(i64),
     StringLit(String),
-    Equals, Plus, Minus, Star, Slash,
+    Equals, Plus, Minus, Star, Slash, Comma, LessThan,
     LParen, RParen, LBrace, RBrace,
     Newline,
     EOF,
@@ -35,6 +36,8 @@ impl Lexer {
                 '-' => { tokens.push(Token::Minus); self.pos += 1; }
                 '*' => { tokens.push(Token::Star); self.pos += 1; }
                 '/' => { tokens.push(Token::Slash); self.pos += 1; }
+                '<' => { tokens.push(Token::LessThan); self.pos += 1; }
+                ',' => { tokens.push(Token::Comma); self.pos += 1; }
                 '(' => { tokens.push(Token::LParen); self.pos += 1; }
                 ')' => { tokens.push(Token::RParen); self.pos += 1; }
                 '{' => { tokens.push(Token::LBrace); self.pos += 1; }
@@ -56,7 +59,9 @@ impl Lexer {
         }
         let text: String = self.input[start..self.pos].iter().collect();
         match text.as_str() {
-            "val" => Token::Val,
+            "var" => Token::Var,
+            "int" => Token::Int,
+            "void" => Token::Void,
             "mut" => Token::Mut,
             "func" => Token::Func,
             "class" => Token::Class,

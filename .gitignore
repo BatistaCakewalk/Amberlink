@@ -1,0 +1,20 @@
+# Rust (amber-core)
+/amber-core/target/
+
+# C++ (amber-vm)
+/amber-vm/build/
+/amber-vm/cmake-build-debug/
+
+# Output Binaries & Artifacts
+/bin/
+*.exe
+*.pdb
+*.ilk
+*.obj
+
+# Amberlink Compiled Bytecode
+*.amc
+
+# System / IDE
+.DS_Store
+.vscode/
