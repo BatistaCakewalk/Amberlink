@@ -1,28 +1,72 @@
 // amber-core/src/lexer.rs
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
-    Val, Mut, Func, Class,    // Keywords
-    Identifier(String),        // variable/function names
+    Val, Mut, Func, Class, Return,
+    Identifier(String),
     Number(i64),
     StringLit(String),
-    Equals, Plus, Minus,       // Operators
-    OpenParen, CloseParen,
-    Newline,                   // Essential for our "Better Java" logic
+    Equals, Plus, Minus, Star, Slash,
+    LParen, RParen, LBrace, RBrace,
+    Newline,
     EOF,
 }
 
 pub struct Lexer {
-    chars: Vec<char>,
+    input: Vec<char>,
     pos: usize,
 }
 
 impl Lexer {
-    pub fn next_token(&mut self) -> Token {
-        // 1. Skip spaces, but NOT newlines
-        // 2. If it's '\n', return Token::Newline
-        // 3. If it's a letter, check if it's "val" or "func"
-        // 4. If it's a digit, parse a Number
-        Token::EOF 
+    pub fn new(input: String) -> Self {
+        Self { input: input.chars().collect(), pos: 0 }
+    }
+
+    pub fn tokenize(&mut self) -> Vec<Token> {
+        let mut tokens = Vec::new();
+        while self.pos < self.input.len() {
+            let c = self.input[self.pos];
+            match c {
+                ' ' | '\r' | '\t' => { self.pos += 1; }
+                '\n' => { tokens.push(Token::Newline); self.pos += 1; }
+                '=' => { tokens.push(Token::Equals); self.pos += 1; }
+                '+' => { tokens.push(Token::Plus); self.pos += 1; }
+                '-' => { tokens.push(Token::Minus); self.pos += 1; }
+                '(' => { tokens.push(Token::LParen); self.pos += 1; }
+                ')' => { tokens.push(Token::RParen); self.pos += 1; }
+                '{' => { tokens.push(Token::LBrace); self.pos += 1; }
+                '}' => { tokens.push(Token::RBrace); self.pos += 1; }
+                'a'..='z' | 'A'..='Z' | '_' => tokens.push(self.read_identifier()),
+                '0'..='9' => tokens.push(self.read_number()),
+                _ => { self.pos += 1; } // Skip unknowns
+            }
+        }
+        tokens.push(Token::EOF);
+        tokens
+    }
+
+    fn read_identifier(&mut self) -> Token {
+        let start = self.pos;
+        while self.pos < self.input.len() && (self.input[self.pos].is_alphanumeric() || self.input[self.pos] == '_') {
+            self.pos += 1;
+        }
+        let text: String = self.input[start..self.pos].iter().collect();
+        match text.as_str() {
+            "val" => Token::Val,
+            "mut" => Token::Mut,
+            "func" => Token::Func,
+            "class" => Token::Class,
+            "return" => Token::Return,
+            _ => Token::Identifier(text),
+        }
+    }
+
+    fn read_number(&mut self) -> Token {
+        let start = self.pos;
+        while self.pos < self.input.len() && self.input[self.pos].is_digit(10) {
+            self.pos += 1;
+        }
+        let text: String = self.input[start..self.pos].iter().collect();
+        Token::Number(text.parse().unwrap())
     }
 }
