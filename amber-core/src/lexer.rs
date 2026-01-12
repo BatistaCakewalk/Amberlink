@@ -1,26 +1,28 @@
 // amber-core/src/lexer.rs
 
+#[derive(Debug, PartialEq)]
 pub enum Token {
-    Keyword(String), // e.g., "func", "val"
-    Identifier(String),
+    Val, Mut, Func, Class,    // Keywords
+    Identifier(String),        // variable/function names
     Number(i64),
-    Operator(char),
+    StringLit(String),
+    Equals, Plus, Minus,       // Operators
+    OpenParen, CloseParen,
+    Newline,                   // Essential for our "Better Java" logic
     EOF,
 }
 
 pub struct Lexer {
-    input: String,
-    position: usize,
+    chars: Vec<char>,
+    pos: usize,
 }
 
 impl Lexer {
-    pub fn new(input: String) -> Self {
-        Self { input, position: 0 }
-    }
-
     pub fn next_token(&mut self) -> Token {
-        // Logic to skip whitespace and identify tokens
-        // This is the "brain" that sees 'print' and knows it's a command
-        Token::EOF // Placeholder
+        // 1. Skip spaces, but NOT newlines
+        // 2. If it's '\n', return Token::Newline
+        // 3. If it's a letter, check if it's "val" or "func"
+        // 4. If it's a digit, parse a Number
+        Token::EOF 
     }
 }
