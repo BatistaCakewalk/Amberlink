@@ -1,4 +1,4 @@
-# scripts/build_all.py
+# scripts/compile.py
 import os
 import subprocess
 import sys
