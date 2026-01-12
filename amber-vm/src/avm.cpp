@@ -16,8 +16,9 @@
         vm_stack.push_back(a op b); \
     } while (false)
 
-void execute(const std::vector<uint8_t>& bytecode) {
+void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& constants) {
     if (bytecode.empty()) {
+        std::cout << "AVM Warning: No bytecode to execute." << std::endl;
         return; // Nothing to execute
     }
 
@@ -75,6 +76,14 @@ void execute(const std::vector<uint8_t>& bytecode) {
                     ip += sizeof(int32_t);
                     break;
                 }
+                case OP_LOAD_CONST: {
+                    int32_t index;
+                    std::memcpy(&index, ip, sizeof(int32_t));
+                    ip += sizeof(int32_t);
+                    // Store as negative index: -1 = index 0, -2 = index 1
+                    vm_stack.push_back(-index - 1);
+                    break;
+                }
                 case OP_STORE_GLOBAL: {
                     int32_t index;
                     std::memcpy(&index, ip, sizeof(int32_t));
@@ -118,7 +127,36 @@ void execute(const std::vector<uint8_t>& bytecode) {
                 }
 
                 // --- Arithmetic & Logic ---
-                case OP_ADD: BINARY_OP(+); break;
+                case OP_ADD: { // Overloaded for integers and strings
+                    if (vm_stack.size() < 2) throw std::runtime_error("Stack underflow during ADD.");
+                    int32_t b = vm_stack.back(); vm_stack.pop_back();
+                    int32_t a = vm_stack.back(); vm_stack.pop_back();
+
+                    // Check if both are strings (negative values)
+                    if (a < 0 && b < 0) {
+                        const std::string& str_a = constants[-a - 1];
+                        const std::string& str_b = constants[-b - 1];
+                        
+                        // Create new concatenated string
+                        std::string result_str = str_a + str_b;
+                        
+                        // Add to constants pool (this is a memory leak until GC)
+                        constants.push_back(result_str);
+                        
+                        // Push new index onto stack
+                        int32_t new_index = constants.size() - 1;
+                        vm_stack.push_back(-new_index - 1);
+                    } 
+                    // Check if both are integers (non-negative values)
+                    else if (a >= 0 && b >= 0) {
+                        vm_stack.push_back(a + b);
+                    } 
+                    // Mixed types
+                    else {
+                        throw std::runtime_error("Type mismatch: Cannot add a string and an integer.");
+                    }
+                    break;
+                }
                 case OP_SUB: BINARY_OP(-); break;
                 case OP_MUL: BINARY_OP(*); break;
                 case OP_DIV: {
@@ -179,7 +217,18 @@ void execute(const std::vector<uint8_t>& bytecode) {
 
                 // --- Utilities ---
                 case OP_POP: vm_stack.pop_back(); break;
-                case OP_PRINT: std::cout << "Amber Out: " << vm_stack.back() << std::endl; vm_stack.pop_back(); break;
+                case OP_PRINT: {
+                    if (vm_stack.empty()) throw std::runtime_error("Stack underflow during PRINT.");
+                    int32_t val = vm_stack.back();
+                    vm_stack.pop_back();
+                    if (val < 0) {
+                        size_t idx = -val - 1;
+                        if (idx < constants.size()) std::cout << "Amber Out: " << constants[idx] << std::endl;
+                        else std::cout << "Amber Out: <Invalid String Index>" << std::endl;
+                    }
+                    else         std::cout << "Amber Out: " << val << std::endl;
+                    break;
+                }
 
                 default: {
                     throw std::runtime_error("Unknown opcode encountered.");

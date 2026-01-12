@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 
 pub struct FunctionInfo {
+    #[allow(dead_code)]
     pub name: String,
     pub address: u32, // Where it exists in the bytecode
 }

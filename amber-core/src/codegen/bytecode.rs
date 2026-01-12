@@ -13,6 +13,7 @@ pub enum OpCode {
     LoadGlobal = 0x12,
     StoreLocal = 0x13,
     LoadLocal = 0x14,
+    LoadConst = 0x15,
 
     // --- Arithmetic & Logic ---
     Add = 0x20,

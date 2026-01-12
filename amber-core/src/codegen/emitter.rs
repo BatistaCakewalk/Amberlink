@@ -8,11 +8,12 @@ use crate::semant::SymbolTable;
 
 pub struct Emitter {
     pub code: Vec<u8>,
+    pub constants: Vec<String>,
     pub calls_to_patch: Vec<(usize, String)>, // (Bytecode Index, Function Name)
 }
 
 impl Emitter {
-    pub fn new() -> Self { Self { code: Vec::new(), calls_to_patch: Vec::new() } }
+    pub fn new() -> Self { Self { code: Vec::new(), constants: Vec::new(), calls_to_patch: Vec::new() } }
 
     pub fn emit_byte(&mut self, b: u8) { self.code.push(b); }
     pub fn emit_int(&mut self, val: i32) {
@@ -24,6 +25,18 @@ impl Emitter {
             Expr::Integer(val) => {
                 self.emit_byte(OpCode::Push.into());
                 self.emit_int(*val);
+            }
+            Expr::StringLiteral(s) => {
+                // Deduplicate or just push
+                let index = if let Some(idx) = self.constants.iter().position(|c| c == s) {
+                    idx
+                } else {
+                    self.constants.push(s.clone());
+                    self.constants.len() - 1
+                };
+                
+                self.emit_byte(OpCode::LoadConst.into());
+                self.emit_int(index as i32);
             }
             Expr::Variable(name) => {
                 if let Some(index) = symbols.locals.get(name) {
@@ -195,6 +208,14 @@ impl Emitter {
         writer.write_all(b"AMBR")?; // Magic
         writer.write_all(&1u16.to_le_bytes())?; // Version
         writer.write_all(&0u32.to_le_bytes())?; // Entry point placeholder
+        
+        // Write Constant Pool
+        writer.write_all(&(self.constants.len() as u32).to_le_bytes())?;
+        for s in &self.constants {
+            writer.write_all(&(s.len() as u32).to_le_bytes())?;
+            writer.write_all(s.as_bytes())?;
+        }
+
         writer.write_all(&(self.code.len() as u32).to_le_bytes())?;
         writer.write_all(&self.code)?;
         Ok(())

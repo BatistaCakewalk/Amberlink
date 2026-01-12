@@ -23,8 +23,10 @@ The `.amc` binary format is designed to be compact and fast to load. It consists
 | 0      | 4            | **Magic Number:** `AMBR` (0x41, 0x4D, 0x42, 0x52) |
 | 4      | 2            | **Version:** A `u16` for the bytecode version.    |
 | 6      | 4            | **Entry Point:** A `u32` offset to the `main` function (future use). |
-| 10     | 4            | **Code Length:** A `u32` indicating the size of the code section. |
-| 14     | N            | **Code Section:** The raw bytecode instructions.  |
+| 10     | 4            | **Pool Count:** A `u32` count of strings in the constant pool. |
+| 14     | Variable     | **Constant Pool:** Sequence of [Len(u32) + Bytes] for each string. |
+| ...    | 4            | **Code Length:** A `u32` indicating the size of the code section. |
+| ...    | N            | **Code Section:** The raw bytecode instructions.  |
 
 5. Memory Management (The GC)
 Unlike the heavy, unpredictable JVM Garbage Collector, the Amber-VM uses a lean and efficient Mark-and-Sweep collector.

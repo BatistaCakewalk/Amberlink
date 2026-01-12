@@ -1,0 +1,4 @@
+// hello.amb
+String greeting = "Hello, "
+String name = "Amberlink!"
+print greeting + name

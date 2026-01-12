@@ -10,6 +10,7 @@ pub enum Op {
 #[derive(Debug, Clone)]
 pub enum Expr {
     Integer(i32),
+    StringLiteral(String),
     Variable(String),
     Call(String, Vec<Expr>),
     Binary(Box<Expr>, Op, Box<Expr>),

@@ -9,10 +9,11 @@ int main(int argc, char* argv[]) {
     }
 
     std::vector<uint8_t> bytecode;
-    if (!Loader::load(argv[1], bytecode)) {
+    std::vector<std::string> constants;
+    if (!Loader::load(argv[1], bytecode, constants)) {
         return 1;
     }
 
-    execute(bytecode);
+    execute(bytecode, constants);
     return 0;
 }

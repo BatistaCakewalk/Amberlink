@@ -3,7 +3,7 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Var, Mut, Func, Class, Return, Print,
-    Int, Void, // Types
+    Int, Void, String, // Types
     If, Else, While,
     Identifier(String),
     Number(i64),
@@ -35,7 +35,15 @@ impl Lexer {
                 '+' => { tokens.push(Token::Plus); self.pos += 1; }
                 '-' => { tokens.push(Token::Minus); self.pos += 1; }
                 '*' => { tokens.push(Token::Star); self.pos += 1; }
-                '/' => { tokens.push(Token::Slash); self.pos += 1; }
+                '/' => { 
+                    if self.pos + 1 < self.input.len() && self.input[self.pos + 1] == '/' {
+                        while self.pos < self.input.len() && self.input[self.pos] != '\n' {
+                            self.pos += 1;
+                        }
+                    } else {
+                        tokens.push(Token::Slash); self.pos += 1; 
+                    }
+                }
                 '<' => { tokens.push(Token::LessThan); self.pos += 1; }
                 ',' => { tokens.push(Token::Comma); self.pos += 1; }
                 '(' => { tokens.push(Token::LParen); self.pos += 1; }
@@ -62,6 +70,7 @@ impl Lexer {
             "var" => Token::Var,
             "int" => Token::Int,
             "void" => Token::Void,
+            "String" => Token::String,
             "mut" => Token::Mut,
             "func" => Token::Func,
             "class" => Token::Class,

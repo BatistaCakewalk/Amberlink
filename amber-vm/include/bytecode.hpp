@@ -14,6 +14,7 @@ enum OpCode : uint8_t {
     OP_LOAD_GLOBAL    = 0x12, // Load a global variable (by 4-byte index) onto the stack
     OP_STORE_LOCAL    = 0x13, // Pop a value and store it in a local slot (FP + index)
     OP_LOAD_LOCAL     = 0x14, // Load a local variable (FP + index) onto the stack
+    OP_LOAD_CONST     = 0x15, // Load a constant from the pool (by 4-byte index)
 
     // --- Arithmetic & Logic ---
     OP_ADD            = 0x20,

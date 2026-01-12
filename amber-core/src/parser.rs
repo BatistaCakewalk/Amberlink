@@ -28,7 +28,7 @@ impl Parser {
     fn parse_statement(&mut self, symbols: &mut SymbolTable) -> Stmt {
         match self.peek() {
             Token::Var => self.parse_declaration(),
-            Token::Int | Token::Void => {
+            Token::Int | Token::Void | Token::String => {
                 // Lookahead to distinguish Variable Declaration vs Function Definition
                 // int x = 5;       (Type -> Identifier -> Equals)
                 // int x() { ... }  (Type -> Identifier -> LParen)
@@ -97,6 +97,7 @@ impl Parser {
     fn parse_primary(&mut self) -> Expr {
         match self.advance() {
             Token::Number(val) => Expr::Integer(val as i32),
+            Token::StringLit(s) => Expr::StringLiteral(s),
             Token::Identifier(name) => {
                 if self.peek() == Token::LParen {
                     self.advance(); // skip '('
@@ -137,7 +138,7 @@ impl Parser {
         if self.peek() != Token::RParen {
             loop {
                 // Parse Parameter Type (e.g., "int")
-                if !matches!(self.peek(), Token::Int | Token::Void) { panic!("Expected parameter type"); }
+                if !matches!(self.peek(), Token::Int | Token::Void | Token::String) { panic!("Expected parameter type"); }
                 self.advance(); 
 
                 match self.advance() {
