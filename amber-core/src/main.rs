@@ -2,14 +2,24 @@ mod lexer;
 mod parser;
 mod semant;
 mod codegen;
+mod ast;
 
+use std::env;
+use std::fs;
 use lexer::Lexer;
 use parser::Parser;
 use semant::SymbolTable;
 use codegen::emitter::Emitter;
 
 fn main() {
-    let source = "func main() { val x = 10 }".to_string();
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        eprintln!("Usage: ambc <file.amb>");
+        std::process::exit(1);
+    }
+
+    let filename = &args[1];
+    let source = fs::read_to_string(filename).expect("Failed to read source file");
     
     // 1. Tokenize
     let mut lexer = Lexer::new(source);
@@ -18,17 +28,20 @@ fn main() {
     // 2. Parse & Semantic Analysis
     let mut symbols = SymbolTable::new();
     let mut parser = Parser::new(tokens);
-    parser.parse(&mut symbols);
+    let ast = parser.parse(&mut symbols);
+    println!("DEBUG AST: {:#?}", ast);
 
-    // 3. Emit (Simple test: push 10, push 20, add, halt)
+    // 3. Emit
     let mut emitter = Emitter::new();
-    emitter.emit_byte(0x01); // OP_PUSH
-    emitter.emit_int(10);
-    emitter.emit_byte(0x01); // OP_PUSH
-    emitter.emit_int(20);
-    emitter.emit_byte(0x02); // OP_ADD
-    emitter.emit_byte(0xFF); // OP_HALT
+    for stmt in ast {
+        match stmt {
+            crate::ast::Stmt::Expression(expr) => emitter.emit_expr(&expr),
+            _ => {} // Skip functions for now
+        }
+    }
+    emitter.emit_byte(0xFF); // OP_HALT (End of program)
 
-    emitter.write_file("output.amc").expect("Failed to write file");
-    println!("Amberlink: Compiled to output.amc");
+    let output_path = filename.replace(".amb", ".amc");
+    emitter.write_file(&output_path).expect("Failed to write file");
+    println!("Amberlink: Compiled {} to {}", filename, output_path);
 }

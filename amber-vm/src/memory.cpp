@@ -16,13 +16,15 @@ void* Heap::allocate(size_t size) {
 void Heap::collect() {
     // 1. Mark Phase (Simplified: in a real VM, you'd scan the stack)
     // 2. Sweep Phase
-    for (auto it = objects.begin(); it != objects.end();) {
-        if (!(*it)->marked) {
-            std::free(*it);
-            it = objects.erase(it);
+    for (size_t i = 0; i < objects.size(); ) {
+        if (!objects[i]->marked) {
+            std::free(objects[i]);
+            // Optimization: Swap with last element and pop to avoid O(N) shift
+            objects[i] = objects.back();
+            objects.pop_back();
         } else {
-            (*it)->marked = false; // Reset for next cycle
-            ++it;
+            objects[i]->marked = false; // Reset for next cycle
+            i++;
         }
     }
 }
