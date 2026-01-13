@@ -10,7 +10,7 @@ BLUE = "\033[94m"
 RESET = "\033[0m"
 
 def run_command(command, cwd, description):
-    print(f"{BLUE}[Amberlink Build]{RESET} {description}...")
+    print(f"{BLUE}[Amberlink Init]{RESET} {description}...")
     result = subprocess.run(command, cwd=cwd, shell=True)
     if result.returncode != 0:
         print(f"Error: {description} failed.")

@@ -5,16 +5,16 @@ import subprocess
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python Amberlink.py [build|compile <file>|install]")
+        print("Usage: python Amberlink.py [init|build <file>|install]")
         return
 
     command = sys.argv[1].lower()
     
-    if command == "build":
+    if command == "init":
         compile.build()
-    elif command == "compile":
+    elif command == "build":
         if len(sys.argv) < 3:
-            print("Usage: python Amberlink.py compile <file.amb>")
+            print("Usage: python Amberlink.py build <file.amb>")
             return
 
         filename = sys.argv[2]
@@ -27,7 +27,7 @@ def main():
 
         if not os.path.exists(compiler_path):
             print(f"Error: Compiler not found at {compiler_path}")
-            print("Run 'python Amberlink.py build' first.")
+            print("Run 'python Amberlink.py init' first.")
             return
 
         subprocess.run([compiler_path, filename])
