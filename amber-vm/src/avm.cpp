@@ -18,6 +18,9 @@
         vm_stack.push_back(a op b); \
     } while (false)
 
+// Offset to distinguish Heap Objects from Constant Pool indices in negative handles
+const int32_t HEAP_HANDLE_OFFSET = 0x40000000;
+
 void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& constants) {
     if (bytecode.empty()) {
         std::cout << "AVM Warning: No bytecode to execute." << std::endl;
@@ -118,8 +121,8 @@ void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& con
                     ArrayObject* arr = new ArrayObject(size);
                     int32_t heap_idx = gc.register_object(arr);
                     
-                    // Calculate handle: - (constants.size() + heap_index) - 1
-                    int32_t handle = -(static_cast<int32_t>(constants.size()) + heap_idx) - 1;
+                    // Calculate handle using fixed offset: -(OFFSET + heap_idx)
+                    int32_t handle = -(HEAP_HANDLE_OFFSET + heap_idx);
                     vm_stack.push_back(handle);
                     break;
                 }
@@ -129,8 +132,8 @@ void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& con
                     int32_t idx = vm_stack.back(); vm_stack.pop_back();
                     int32_t ref = vm_stack.back(); vm_stack.pop_back();
 
-                    int32_t abs_idx = -ref - 1;
-                    int32_t heap_idx = abs_idx - constants.size();
+                    int32_t abs_idx = -ref;
+                    int32_t heap_idx = abs_idx - HEAP_HANDLE_OFFSET;
                     
                     if (heap_idx < 0 || heap_idx >= gc.objects.size()) throw std::runtime_error("Invalid array reference.");
                     ArrayObject* arr = dynamic_cast<ArrayObject*>(gc.objects[heap_idx]);
@@ -145,8 +148,8 @@ void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& con
                     int32_t idx = vm_stack.back(); vm_stack.pop_back();
                     int32_t ref = vm_stack.back(); vm_stack.pop_back();
 
-                    int32_t abs_idx = -ref - 1;
-                    int32_t heap_idx = abs_idx - constants.size();
+                    int32_t abs_idx = -ref;
+                    int32_t heap_idx = abs_idx - HEAP_HANDLE_OFFSET;
                     
                     if (heap_idx < 0 || heap_idx >= gc.objects.size()) throw std::runtime_error("Invalid array reference.");
                     ArrayObject* arr = dynamic_cast<ArrayObject*>(gc.objects[heap_idx]);
@@ -233,20 +236,14 @@ void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& con
                     int32_t target_offset;
                     std::memcpy(&target_offset, ip, sizeof(int32_t));
                     ip += 4;
+
+                    uint8_t arg_count = *ip++;
                     
-                    // In a simple stack machine, arguments are already on the stack.
-                    // We just need to set the new Frame Pointer.
-                    // NOTE: This simple implementation assumes we know arg count or 
-                    // we just set FP to current stack top. 
-                    // For this factorial example, we'll assume FP points to the first argument.
-                    // But since we don't have arg count here, let's assume the compiler
-                    // handles stack cleanup and we just use FP for locals.
+                    if (vm_stack.size() < arg_count) throw std::runtime_error("Stack underflow during CALL.");
                     
                     fp_stack.push_back(fp);
-                    // Heuristic: FP is current stack top minus 1 (for 1 arg). 
-                    // Ideally OP_CALL should take arg_count. 
-                    // For now, let's assume FP = stack.size() - 1 (1 argument function support hack for test)
-                    fp = vm_stack.size() - 1; 
+                    // FP points to the first argument
+                    fp = vm_stack.size() - arg_count; 
 
                     call_stack.push_back(ip); // Save return address
                     ip = bytecode.data() + target_offset; // Jump to function

@@ -75,6 +75,7 @@ impl Emitter {
                 // Emit placeholder address and record for patching
                 self.calls_to_patch.push((self.code.len(), name.clone()));
                 self.emit_int(0); 
+                self.emit_byte(args.len() as u8);
             }
             Expr::Binary(left, op, right) => {
                 self.emit_expr(left, symbols);
