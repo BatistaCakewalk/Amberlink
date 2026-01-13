@@ -1,3 +1,6 @@
+# Amberlink.py
+# A simple script tool to easily build and run Amber projects, U can also use this to initialize the build process
+
 import sys
 import compile
 import os
