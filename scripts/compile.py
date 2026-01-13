@@ -55,7 +55,7 @@ def build():
     dest_avm_name = "avm.exe" if os.name == "nt" else "avm"
     shutil.copy(src_avm, os.path.join(bin_dir, dest_avm_name))
 
-    print(f"\n{GREEN}Success!{RESET} Amberlink is ready.")
+    print(f"\n{GREEN}Success!{RESET}")
     print(f"Compiler: {os.path.join(bin_dir, dest_rust_name)}")
     print(f"VM:       {os.path.join(bin_dir, dest_avm_name)}")
 
