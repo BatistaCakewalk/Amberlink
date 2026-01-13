@@ -2,6 +2,7 @@
 #define HEAP_HPP
 
 #include <vector>
+#include <cstdint>
 #include <cstddef>
 
 enum class ObjType {

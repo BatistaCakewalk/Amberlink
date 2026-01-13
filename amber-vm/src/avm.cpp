@@ -5,6 +5,7 @@
 #include <vector>
 #include <stack>
 #include <stdexcept>
+#include <cstdint>
 #include <cstring> // For std::memcpy
 
 // A simple macro to reduce boilerplate for binary operations.
