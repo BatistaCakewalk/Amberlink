@@ -12,6 +12,8 @@ pub enum Expr {
     Integer(i32),
     StringLiteral(String),
     Variable(String),
+    NewArray(Box<Expr>), // Size
+    ArrayAccess(String, Box<Expr>), // Name, Index
     Call(String, Vec<Expr>),
     Binary(Box<Expr>, Op, Box<Expr>),
 }
@@ -19,7 +21,9 @@ pub enum Expr {
 #[derive(Debug, Clone)]
 pub enum Stmt {
     VarDecl(String, Expr),
+    Assign(String, Expr),
     Return(Expr),
+    ArraySet(String, Expr, Expr), // Name, Index, Value
     Print(Expr),
     Block(Vec<Stmt>),
     If(Expr, Box<Stmt>, Option<Box<Stmt>>), // Condition, Then, Else

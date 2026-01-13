@@ -15,6 +15,9 @@ enum OpCode : uint8_t {
     OP_STORE_LOCAL    = 0x13, // Pop a value and store it in a local slot (FP + index)
     OP_LOAD_LOCAL     = 0x14, // Load a local variable (FP + index) onto the stack
     OP_LOAD_CONST     = 0x15, // Load a constant from the pool (by 4-byte index)
+    OP_NEW_ARRAY      = 0x16, // Pop size, push array reference
+    OP_STORE_ARRAY    = 0x17, // Pop value, Pop index, Pop array ref, Store
+    OP_LOAD_ARRAY     = 0x18, // Pop index, Pop array ref, Push value
 
     // --- Arithmetic & Logic ---
     OP_ADD            = 0x20,

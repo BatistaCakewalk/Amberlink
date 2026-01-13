@@ -14,6 +14,9 @@ pub enum OpCode {
     StoreLocal = 0x13,
     LoadLocal = 0x14,
     LoadConst = 0x15,
+    NewArray = 0x16,
+    StoreArray = 0x17,
+    LoadArray = 0x18,
 
     // --- Arithmetic & Logic ---
     Add = 0x20,

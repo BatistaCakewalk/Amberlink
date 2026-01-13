@@ -44,6 +44,22 @@ impl Parser {
             Token::Return => self.parse_return(),
             Token::Print => self.parse_print(),
             // Token::Func is deprecated in favor of C-style types
+            Token::Identifier(_) => {
+                // Parse as expression first to handle L-values (Variable or ArrayAccess)
+                let expr = self.parse_expr();
+                
+                if self.peek() == Token::Equals {
+                    self.advance(); // consume '='
+                    let value = self.parse_expr();
+                    match expr {
+                        Expr::Variable(name) => Stmt::Assign(name, value),
+                        Expr::ArrayAccess(name, index) => Stmt::ArraySet(name, *index, value),
+                        _ => panic!("Invalid assignment target. Only variables and array elements can be assigned."),
+                    }
+                } else {
+                    Stmt::Expression(expr)
+                }
+            }
             _ => Stmt::Expression(self.parse_expr()),
         }
     }
@@ -97,6 +113,14 @@ impl Parser {
     fn parse_primary(&mut self) -> Expr {
         match self.advance() {
             Token::Number(val) => Expr::Integer(val as i32),
+            Token::New => {
+                // new int[size]
+                if !matches!(self.advance(), Token::Int | Token::String) { panic!("Expected type after new"); }
+                if self.advance() != Token::LBracket { panic!("Expected '[' after type"); }
+                let size = self.parse_expr();
+                if self.advance() != Token::RBracket { panic!("Expected ']' after size"); }
+                Expr::NewArray(Box::new(size))
+            }
             Token::StringLit(s) => Expr::StringLiteral(s),
             Token::Identifier(name) => {
                 if self.peek() == Token::LParen {
@@ -112,6 +136,11 @@ impl Parser {
                         panic!("Expected ')' after arguments");
                     }
                     Expr::Call(name, args)
+                } else if self.peek() == Token::LBracket {
+                    self.advance(); // [
+                    let index = self.parse_expr();
+                    if self.advance() != Token::RBracket { panic!("Expected ']'"); }
+                    Expr::ArrayAccess(name, Box::new(index))
                 } else {
                     Expr::Variable(name)
                 }

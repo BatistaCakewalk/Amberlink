@@ -38,6 +38,23 @@ impl Emitter {
                 self.emit_byte(OpCode::LoadConst.into());
                 self.emit_int(index as i32);
             }
+            Expr::NewArray(size) => {
+                self.emit_expr(size, symbols);
+                self.emit_byte(OpCode::NewArray.into());
+            }
+            Expr::ArrayAccess(name, index) => {
+                // Load array ref
+                if let Some(idx) = symbols.locals.get(name) {
+                    self.emit_byte(OpCode::LoadLocal.into());
+                    self.emit_int(*idx as i32);
+                } else {
+                    let idx = symbols.variables.get(name).expect("Undefined variable");
+                    self.emit_byte(OpCode::LoadGlobal.into());
+                    self.emit_int(*idx as i32);
+                }
+                self.emit_expr(index, symbols); // Load index
+                self.emit_byte(OpCode::LoadArray.into());
+            }
             Expr::Variable(name) => {
                 if let Some(index) = symbols.locals.get(name) {
                     self.emit_byte(OpCode::LoadLocal.into());
@@ -115,6 +132,32 @@ impl Emitter {
 
                 self.emit_byte(OpCode::StoreGlobal.into());
                 self.emit_int(index as i32);
+            }
+            Stmt::Assign(name, expr) => {
+                self.emit_expr(expr, symbols);
+                if let Some(index) = symbols.locals.get(name) {
+                    self.emit_byte(OpCode::StoreLocal.into());
+                    self.emit_int(*index as i32);
+                } else if let Some(index) = symbols.variables.get(name) {
+                    self.emit_byte(OpCode::StoreGlobal.into());
+                    self.emit_int(*index as i32);
+                } else {
+                    panic!("Undefined variable: {}", name);
+                }
+            }
+            Stmt::ArraySet(name, index, value) => {
+                // Load array ref
+                if let Some(idx) = symbols.locals.get(name) {
+                    self.emit_byte(OpCode::LoadLocal.into());
+                    self.emit_int(*idx as i32);
+                } else {
+                    let idx = symbols.variables.get(name).expect("Undefined variable");
+                    self.emit_byte(OpCode::LoadGlobal.into());
+                    self.emit_int(*idx as i32);
+                }
+                self.emit_expr(index, symbols);
+                self.emit_expr(value, symbols);
+                self.emit_byte(OpCode::StoreArray.into());
             }
             Stmt::Return(expr) => {
                 self.emit_expr(expr, symbols);

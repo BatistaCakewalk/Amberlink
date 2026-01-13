@@ -3,13 +3,13 @@
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Var, Mut, Func, Class, Return, Print,
-    Int, Void, String, // Types
+    Int, Void, String, New, // Types & Keywords
     If, Else, While,
     Identifier(String),
     Number(i64),
     StringLit(String),
     Equals, Plus, Minus, Star, Slash, Comma, LessThan,
-    LParen, RParen, LBrace, RBrace,
+    LParen, RParen, LBrace, RBrace, LBracket, RBracket,
     Newline,
     EOF,
 }
@@ -50,6 +50,8 @@ impl Lexer {
                 ')' => { tokens.push(Token::RParen); self.pos += 1; }
                 '{' => { tokens.push(Token::LBrace); self.pos += 1; }
                 '}' => { tokens.push(Token::RBrace); self.pos += 1; }
+                '[' => { tokens.push(Token::LBracket); self.pos += 1; }
+                ']' => { tokens.push(Token::RBracket); self.pos += 1; }
                 'a'..='z' | 'A'..='Z' | '_' => tokens.push(self.read_identifier()),
                 '0'..='9' => tokens.push(self.read_number()),
                 '"' => tokens.push(self.read_string()),
@@ -71,6 +73,7 @@ impl Lexer {
             "int" => Token::Int,
             "void" => Token::Void,
             "String" => Token::String,
+            "new" => Token::New,
             "mut" => Token::Mut,
             "func" => Token::Func,
             "class" => Token::Class,

@@ -1,5 +1,6 @@
 #include "avm.hpp"
 #include "bytecode.hpp"
+#include "heap.hpp"
 #include <iostream>
 #include <vector>
 #include <stack>
@@ -25,6 +26,9 @@ void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& con
     // Use vector for cache locality (contiguous memory) instead of std::stack/deque
     std::vector<int32_t> vm_stack;
     vm_stack.reserve(1024); // Pre-allocate reasonable stack space
+
+    // Garbage Collector
+    Heap gc;
 
     // Global variables storage (Simple indexed memory)
     std::vector<int32_t> globals;
@@ -106,6 +110,51 @@ void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& con
                     vm_stack.push_back(globals[index]);
                     break;
                 }
+                case OP_NEW_ARRAY: {
+                    if (vm_stack.empty()) throw std::runtime_error("Stack underflow during NEW_ARRAY.");
+                    int32_t size = vm_stack.back(); vm_stack.pop_back();
+                    
+                    ArrayObject* arr = new ArrayObject(size);
+                    int32_t heap_idx = gc.register_object(arr);
+                    
+                    // Calculate handle: - (constants.size() + heap_index) - 1
+                    int32_t handle = -(static_cast<int32_t>(constants.size()) + heap_idx) - 1;
+                    vm_stack.push_back(handle);
+                    break;
+                }
+                case OP_STORE_ARRAY: {
+                    if (vm_stack.size() < 3) throw std::runtime_error("Stack underflow during STORE_ARRAY.");
+                    int32_t val = vm_stack.back(); vm_stack.pop_back();
+                    int32_t idx = vm_stack.back(); vm_stack.pop_back();
+                    int32_t ref = vm_stack.back(); vm_stack.pop_back();
+
+                    int32_t abs_idx = -ref - 1;
+                    int32_t heap_idx = abs_idx - constants.size();
+                    
+                    if (heap_idx < 0 || heap_idx >= gc.objects.size()) throw std::runtime_error("Invalid array reference.");
+                    ArrayObject* arr = dynamic_cast<ArrayObject*>(gc.objects[heap_idx]);
+                    if (!arr) throw std::runtime_error("Reference is not an array.");
+                    if (idx < 0 || idx >= arr->data.size()) throw std::runtime_error("Array index out of bounds.");
+                    
+                    arr->data[idx] = val;
+                    break;
+                }
+                case OP_LOAD_ARRAY: {
+                    if (vm_stack.size() < 2) throw std::runtime_error("Stack underflow during LOAD_ARRAY.");
+                    int32_t idx = vm_stack.back(); vm_stack.pop_back();
+                    int32_t ref = vm_stack.back(); vm_stack.pop_back();
+
+                    int32_t abs_idx = -ref - 1;
+                    int32_t heap_idx = abs_idx - constants.size();
+                    
+                    if (heap_idx < 0 || heap_idx >= gc.objects.size()) throw std::runtime_error("Invalid array reference.");
+                    ArrayObject* arr = dynamic_cast<ArrayObject*>(gc.objects[heap_idx]);
+                    if (!arr) throw std::runtime_error("Reference is not an array.");
+                    if (idx < 0 || idx >= arr->data.size()) throw std::runtime_error("Array index out of bounds.");
+                    
+                    vm_stack.push_back(arr->data[idx]);
+                    break;
+                }
                 case OP_STORE_LOCAL: {
                     int32_t index;
                     std::memcpy(&index, ip, sizeof(int32_t));
@@ -142,6 +191,9 @@ void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& con
                         
                         // Add to constants pool (this is a memory leak until GC)
                         constants.push_back(result_str);
+
+                        // Trigger GC (Simulate allocation pressure)
+                        gc.collect(vm_stack, globals, constants.size());
                         
                         // Push new index onto stack
                         int32_t new_index = constants.size() - 1;

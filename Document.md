@@ -78,7 +78,7 @@ This phase focuses on implementing the fundamental building blocks required to w
 
 ### Phase 2: Data Structures & Memory (The "Robust" Milestone)
 This phase moves beyond simple numbers and introduces the ability to manage more complex data.
-1.  **String & Constant Pool:** Implement heap-allocated strings and a "constant pool" in the bytecode to efficiently store and reuse literals.
+1.  **String & Constant Pool (Completed):** Implement heap-allocated strings and a "constant pool" in the bytecode to efficiently store and reuse literals.
 2.  **GC Root Scanning:** Fully implement the Garbage Collector by teaching it to scan the VM's stack and global variables for "roots" to determine which objects are still in use.
 3.  **Arrays:** Introduce a built-in array/list type as the first user-creatable, heap-allocated collection.
 

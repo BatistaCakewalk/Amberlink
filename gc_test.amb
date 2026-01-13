@@ -1,0 +1,15 @@
+int i = 0
+print "Starting GC Test"
+
+while i < 5 {
+    // 1. Create an array. Since we don't assign it to a variable, 
+    // it is popped from the stack and becomes garbage immediately.
+    new int[10]
+
+    // 2. Trigger GC by creating a new string (concatenation triggers collection)
+    String trigger = "GC " + "Trigger"
+
+    print i
+    i = i + 1
+}
+print "Done"
