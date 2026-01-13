@@ -321,12 +321,18 @@ void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& con
                     if (vm_stack.empty()) throw std::runtime_error("Stack underflow during PRINT.");
                     int32_t val = vm_stack.back();
                     vm_stack.pop_back();
-                    if (val < 0) {
+                    
+                    // Check if it's a Heap Object Handle first
+                    if (val <= -HEAP_HANDLE_OFFSET) {
+                        std::cout << "Amber Out: [Heap Object " << (-val - HEAP_HANDLE_OFFSET) << "]" << std::endl;
+                    } else if (val < 0) {
+                        // It's a String Constant
                         size_t idx = -val - 1;
                         if (idx < constants.size()) std::cout << "Amber Out: " << constants[idx] << std::endl;
                         else std::cout << "Amber Out: <Invalid String Index>" << std::endl;
+                    } else {
+                        std::cout << "Amber Out: " << val << std::endl;
                     }
-                    else         std::cout << "Amber Out: " << val << std::endl;
                     break;
                 }
 

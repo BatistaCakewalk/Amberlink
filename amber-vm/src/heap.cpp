@@ -62,26 +62,20 @@ void Heap::collect(const std::vector<int32_t>& stack, const std::vector<int32_t>
 
     // 2. Mark Roots (Stack)
     for (int32_t val : stack) {
-        if (val < 0) {
-            size_t abs_idx = -val - 1;
-            if (abs_idx >= constant_pool_size) {
-                size_t heap_idx = abs_idx - constant_pool_size;
-                if (heap_idx < objects.size()) {
-                    mark(objects[heap_idx], constant_pool_size);
-                }
+        if (val <= -HEAP_HANDLE_OFFSET) {
+            size_t heap_idx = -val - HEAP_HANDLE_OFFSET;
+            if (heap_idx < objects.size()) {
+                mark(objects[heap_idx], constant_pool_size);
             }
         }
     }
 
     // 3. Mark Roots (Globals)
     for (int32_t val : globals) {
-        if (val < 0) {
-            size_t abs_idx = -val - 1;
-            if (abs_idx >= constant_pool_size) {
-                size_t heap_idx = abs_idx - constant_pool_size;
-                if (heap_idx < objects.size()) {
-                    mark(objects[heap_idx], constant_pool_size);
-                }
+        if (val <= -HEAP_HANDLE_OFFSET) {
+            size_t heap_idx = -val - HEAP_HANDLE_OFFSET;
+            if (heap_idx < objects.size()) {
+                mark(objects[heap_idx], constant_pool_size);
             }
         }
     }

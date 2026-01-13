@@ -63,7 +63,12 @@ impl Emitter {
                 
                 // Hack: Find field index by looking at all classes (since we don't track types yet)
                 let mut field_idx = None;
-                for cls in symbols.classes.values() {
+                
+                // Sort classes to ensure deterministic compilation
+                let mut classes: Vec<_> = symbols.classes.values().collect();
+                classes.sort_by_key(|c| &c.name);
+
+                for cls in classes {
                     if let Some(idx) = cls.fields.get(field_name) {
                         field_idx = Some(*idx);
                         break;
