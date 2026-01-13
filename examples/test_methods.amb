@@ -1,0 +1,21 @@
+class Counter {
+    int count
+
+    void increment() {
+        this.count = this.count + 1
+    }
+
+    void add(int val) {
+        this.count = this.count + val
+    }
+}
+
+var c = new Counter()
+c.count = 0
+
+c.increment()
+c.increment()
+print c.count 
+
+c.add(10)
+print c.count

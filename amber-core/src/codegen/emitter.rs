@@ -4,7 +4,8 @@ use std::io::{Write, BufWriter};
 use super::bytecode::OpCode;
 use crate::ast::{Expr, Op};
 use crate::ast::Stmt;
-use crate::semant::SymbolTable;
+use crate::semant::{SymbolTable, ClassInfo};
+use std::collections::HashMap;
 
 pub struct Emitter {
     pub code: Vec<u8>,
@@ -41,6 +42,63 @@ impl Emitter {
             Expr::NewArray(size) => {
                 self.emit_expr(size, symbols);
                 self.emit_byte(OpCode::NewArray.into());
+            }
+            Expr::NewInstance(class_name) => {
+                // 1. Find the class
+                let class_info = symbols.classes.get(class_name)
+                    .expect(&format!("Undefined class: {}", class_name));
+                
+                // 2. Emit OP_NEW_INSTANCE
+                self.emit_byte(OpCode::NewInstance.into());
+                
+                // 3. Emit Class ID (Hash of name for now, or just 0 placeholder) and Field Count
+                // For simplicity in v0.3, we pass Field Count directly so VM knows how much to alloc.
+                // We can use the constant pool index of the class name as the ID.
+                let name_idx = self.add_constant(class_name.clone());
+                self.emit_int(name_idx as i32);
+                self.emit_int(class_info.fields.len() as i32);
+            }
+            Expr::GetField(obj_expr, field_name) => {
+                self.emit_expr(obj_expr, symbols); // Push object ref
+                
+                // Hack: Find field index by looking at all classes (since we don't track types yet)
+                let mut field_idx = None;
+                for cls in symbols.classes.values() {
+                    if let Some(idx) = cls.fields.get(field_name) {
+                        field_idx = Some(*idx);
+                        break;
+                    }
+                }
+                let idx = field_idx.expect(&format!("Field '{}' not found in any known class", field_name));
+                
+                self.emit_byte(OpCode::GetField.into());
+                self.emit_int(idx as i32);
+            }
+            Expr::MethodCall(obj, method_name, args) => {
+                self.emit_expr(obj, symbols); // 1. Push Object (this)
+                for arg in args {
+                    self.emit_expr(arg, symbols); // 2. Push Args
+                }
+
+                // Find which class has this method
+                let mut found_class = None;
+                // Sort classes to ensure deterministic compilation in case of name collisions
+                let mut classes: Vec<_> = symbols.classes.values().collect();
+                classes.sort_by_key(|c| &c.name);
+
+                for cls in classes {
+                    if cls.methods.contains(method_name) {
+                        found_class = Some(cls.name.clone());
+                        break;
+                    }
+                }
+                let class_name = found_class.expect(&format!("Method '{}' not found in any known class", method_name));
+                let full_name = format!("{}_{}", class_name, method_name);
+
+                self.emit_byte(OpCode::Call.into());
+                self.calls_to_patch.push((self.code.len(), full_name));
+                self.emit_int(0);
+                self.emit_byte((args.len() + 1) as u8); // +1 for 'this'
             }
             Expr::ArrayAccess(name, index) => {
                 // Load array ref
@@ -106,6 +164,15 @@ impl Emitter {
         let bytes = jump_dist.to_le_bytes();
         for i in 0..4 {
             self.code[offset_index + i] = bytes[i];
+        }
+    }
+
+    fn add_constant(&mut self, s: String) -> usize {
+        if let Some(idx) = self.constants.iter().position(|c| *c == s) {
+            idx
+        } else {
+            self.constants.push(s);
+            self.constants.len() - 1
         }
     }
 
@@ -242,6 +309,50 @@ impl Emitter {
                 // Restore locals
                 symbols.locals = old_locals;
                 symbols.next_local_index = old_local_index;
+            }
+            Stmt::Class(name, fields, methods) => {
+                // Register class in symbol table
+                let mut field_map = HashMap::new();
+                for (i, f) in fields.iter().enumerate() {
+                    field_map.insert(f.clone(), i as u32);
+                }
+                
+                let mut method_names = Vec::new();
+                for m in methods {
+                    if let Stmt::Function(fname, _, _) = m {
+                        // fname is "Class_Method", strip prefix to get "Method"
+                        let short_name = fname.strip_prefix(&format!("{}_", name)).unwrap_or(fname);
+                        method_names.push(short_name.to_string());
+                    }
+                }
+
+                symbols.classes.insert(name.clone(), ClassInfo {
+                    name: name.clone(),
+                    fields: field_map,
+                    methods: method_names,
+                });
+
+                // Emit methods
+                for method in methods {
+                    self.emit_stmt(&method, symbols);
+                }
+            }
+            Stmt::FieldSet(obj, field, value) => {
+                self.emit_expr(obj, symbols);   // Push object ref
+                self.emit_expr(value, symbols); // Push value to assign
+                
+                // Resolve field index
+                let mut field_idx = None;
+                for cls in symbols.classes.values() {
+                    if let Some(idx) = cls.fields.get(field) {
+                        field_idx = Some(*idx);
+                        break;
+                    }
+                }
+                let idx = field_idx.expect(&format!("Field '{}' not found in any known class", field));
+                
+                self.emit_byte(OpCode::SetField.into());
+                self.emit_int(idx as i32);
             }
         }
     }

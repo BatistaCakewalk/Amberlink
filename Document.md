@@ -1,16 +1,25 @@
-# 📄 Amberlink: Technical Specification (v0.3.2)
+# 📄 Amberlink: Technical Specification (v0.4.0)
+
 Amberlink is a high-performance, multi-paradigm programming language designed to bridge the gap between the safety of Java and the raw power of C++. It utilizes a unique Dual-Backend approach, allowing code to run either on a dedicated Virtual Machine (AVM) or as a native binary.
 
-1. System Architecture
+## 1. System Architecture
+
 Amberlink is split into two primary components to ensure memory safety and execution speed:
-• The Brain (Amber-Core): Built in Rust. It handles the frontend tasks: Lexing, Parsing, Semantic Analysis, and Bytecode Generation. Using Rust ensures the compiler is immune to memory-related crashes.
-• The Body (Amber-VM / AVM): Built in C++. A high-performance, stack-based virtual machine featuring a custom Mark-and-Sweep Garbage Collector and a lean object header system.
-2. The Compilation Pipeline
+
+*   **The Brain (Amber-Core):** Built in Rust. It handles the frontend tasks: Lexing, Parsing, Semantic Analysis, and Bytecode Generation. Using Rust ensures the compiler is immune to memory-related crashes.
+*   **The Body (Amber-VM / AVM):** Built in C++. A high-performance, stack-based virtual machine featuring a custom Mark-and-Sweep Garbage Collector and a lean object header system.
+
+## 2. The Compilation Pipeline
+
 Amberlink uses a Two-Pass Compilation strategy to solve the "Forward Declaration" problem found in older languages like C++.
-1. Pass 1 (Discovery): The compiler scans the .amb source file to identify all function signatures, class definitions, and global variables. It populates the Symbol Table.
-2. Pass 2 (Validation & Emission): The compiler verifies the logic and types. If successful, the Emitter generates a highly optimized binary file with the .amc (Amber Compiled) extension.
-3. Language Design Philosophy
+
+1.  **Pass 1 (Discovery):** The compiler scans the `.amb` source file to identify all function signatures, class definitions, and global variables. It populates the Symbol Table.
+2.  **Pass 2 (Validation & Emission):** The compiler verifies the logic and types. If successful, the Emitter generates a highly optimized binary file with the `.amc` (Amber Compiled) extension.
+
+## 3. Language Design Philosophy
+
 Amberlink is designed to be cleaner and more stable than Java, offering a familiar environment for existing developers while removing boilerplate.
+
 *   **Familiar Syntax:** Uses C-style static typing and function definitions (`int add(int a, int b)`) to feel intuitive for developers coming from Java, C++, or C#.
 *   **Script-like Simplicity:** No mandatory classes or `public static void main` boilerplate. Code executes from top to bottom, making it easy to write simple scripts and test ideas quickly.
 *   **Newline-Based:** No semicolons required. The parser uses significant newlines to delimit statements, leading to cleaner code.
@@ -18,7 +27,7 @@ Amberlink is designed to be cleaner and more stable than Java, offering a famili
 
 ### Language Features Overview
 
-**Variables & Types**
+#### Variables & Types
 Amberlink is statically typed. Variables must be declared with a type (`int`, `String`, `void`).
 ```java
 int count = 10

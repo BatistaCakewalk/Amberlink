@@ -1,0 +1,13 @@
+class Point {
+    int x
+    int y
+}
+
+var p = new Point()
+p.x = 10
+p.y = 20
+
+print "Point X:"
+print p.x
+print "Point Y:"
+print p.y

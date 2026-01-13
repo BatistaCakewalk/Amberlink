@@ -18,9 +18,6 @@
         vm_stack.push_back(a op b); \
     } while (false)
 
-// Offset to distinguish Heap Objects from Constant Pool indices in negative handles
-const int32_t HEAP_HANDLE_OFFSET = 0x40000000;
-
 void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& constants) {
     if (bytecode.empty()) {
         std::cout << "AVM Warning: No bytecode to execute." << std::endl;
@@ -176,6 +173,59 @@ void execute(const std::vector<uint8_t>& bytecode, std::vector<std::string>& con
                     std::memcpy(&index, ip, sizeof(int32_t));
                     ip += sizeof(int32_t);
                     vm_stack.push_back(vm_stack[fp + index]);
+                    break;
+                }
+                
+                // --- Object-Oriented ---
+                case OP_NEW_INSTANCE: {
+                    int32_t class_name_idx;
+                    std::memcpy(&class_name_idx, ip, sizeof(int32_t)); ip += 4;
+                    int32_t field_count;
+                    std::memcpy(&field_count, ip, sizeof(int32_t)); ip += 4;
+
+                    InstanceObject* obj = new InstanceObject(class_name_idx, field_count);
+                    int32_t heap_idx = gc.register_object(obj);
+                    
+                    // Push handle
+                    int32_t handle = -(HEAP_HANDLE_OFFSET + heap_idx);
+                    vm_stack.push_back(handle);
+                    break;
+                }
+                case OP_GET_FIELD: {
+                    int32_t field_idx;
+                    std::memcpy(&field_idx, ip, sizeof(int32_t)); ip += 4;
+
+                    if (vm_stack.empty()) throw std::runtime_error("Stack underflow during GET_FIELD.");
+                    int32_t ref = vm_stack.back(); vm_stack.pop_back();
+
+                    int32_t heap_idx = -ref - HEAP_HANDLE_OFFSET;
+                    if (heap_idx < 0 || heap_idx >= gc.objects.size()) throw std::runtime_error("Invalid instance reference.");
+                    
+                    InstanceObject* obj = dynamic_cast<InstanceObject*>(gc.objects[heap_idx]);
+                    if (!obj) throw std::runtime_error("Reference is not an instance.");
+                    if (field_idx < 0 || field_idx >= obj->fields.size()) throw std::runtime_error("Field index out of bounds.");
+
+                    vm_stack.push_back(obj->fields[field_idx]);
+                    break;
+                }
+                // Note: OP_SET_FIELD logic is usually handled by Stmt::Assign in the compiler, 
+                // but if we have a specific opcode for it:
+                case OP_SET_FIELD: {
+                    int32_t field_idx;
+                    std::memcpy(&field_idx, ip, sizeof(int32_t)); ip += 4;
+
+                    if (vm_stack.size() < 2) throw std::runtime_error("Stack underflow during SET_FIELD.");
+                    int32_t val = vm_stack.back(); vm_stack.pop_back();
+                    int32_t ref = vm_stack.back(); vm_stack.pop_back();
+
+                    int32_t heap_idx = -ref - HEAP_HANDLE_OFFSET;
+                    if (heap_idx < 0 || heap_idx >= gc.objects.size()) throw std::runtime_error("Invalid instance reference.");
+                    
+                    InstanceObject* obj = dynamic_cast<InstanceObject*>(gc.objects[heap_idx]);
+                    if (!obj) throw std::runtime_error("Reference is not an instance.");
+                    if (field_idx < 0 || field_idx >= obj->fields.size()) throw std::runtime_error("Field index out of bounds.");
+
+                    obj->fields[field_idx] = val;
                     break;
                 }
 

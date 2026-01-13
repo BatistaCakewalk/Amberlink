@@ -19,8 +19,8 @@ This phase moves beyond simple numbers and introduces the ability to manage more
 ## Phase 3: Object-Oriented Programming (The "Modern" Milestone)
 This phase brings Amberlink closer to its goal of being a modern, Java-like language.
 
-- [ ] **Classes & Instances:** Implement `class` definitions, fields, and object instantiation (`new MyClass()`).
-- [ ] **Methods & `this`:** Allow methods to be defined within classes and implement the `this` keyword to refer to the current instance.
+- [x] **Classes & Instances:** Implement `class` definitions, fields, and object instantiation (`new MyClass()`).
+- [x] **Methods & `this`:** Allow methods to be defined within classes and implement the `this` keyword to refer to the current instance.
 - [ ] **Inheritance:** Implement single inheritance for classes, allowing for code reuse and polymorphism.
 
 ## Phase 4: Ecosystem & Tooling (The "Mature" Milestone)

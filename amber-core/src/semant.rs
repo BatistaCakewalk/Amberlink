@@ -7,8 +7,16 @@ pub struct FunctionInfo {
     pub address: u32, // Where it exists in the bytecode
 }
 
+#[derive(Clone)]
+pub struct ClassInfo {
+    pub name: String,
+    pub fields: HashMap<String, u32>, // Field Name -> Index
+    pub methods: Vec<String>, // List of method names
+}
+
 pub struct SymbolTable {
     pub functions: HashMap<String, FunctionInfo>,
+    pub classes: HashMap<String, ClassInfo>,
     pub variables: HashMap<String, u32>, // Maps "x" -> 0 (Global Index)
     pub locals: HashMap<String, u32>,    // Maps "n" -> 0 (Local Index relative to FP)
     pub next_var_index: u32,
@@ -19,6 +27,7 @@ impl SymbolTable {
     pub fn new() -> Self {
         Self { 
             functions: HashMap::new(),
+            classes: HashMap::new(),
             variables: HashMap::new(),
             locals: HashMap::new(),
             next_var_index: 0,

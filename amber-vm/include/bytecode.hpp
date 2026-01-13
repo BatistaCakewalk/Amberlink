@@ -27,6 +27,11 @@ enum OpCode : uint8_t {
     OP_LESS           = 0x24, // Pop b, Pop a, Push (a < b)
     // Future: OP_EQUAL, OP_GREATER, OP_LESS
 
+    // --- Object-Oriented ---
+    OP_NEW_INSTANCE   = 0x40, // Operand: Class ID (u32). Push instance ref.
+    OP_GET_FIELD      = 0x41, // Operand: Field Index (u32). Pop ref, Push value.
+    OP_SET_FIELD      = 0x42, // Operand: Field Index (u32). Pop value, Pop ref.
+
     // --- Functions & Calls ---
     OP_CALL           = 0x30, // Call function at 4-byte address
     OP_RETURN         = 0x31, // Return from function

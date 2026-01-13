@@ -25,6 +25,11 @@ pub enum OpCode {
     Div = 0x23,
     Less = 0x24,
 
+    // --- Object-Oriented ---
+    NewInstance = 0x40,
+    GetField = 0x41,
+    SetField = 0x42,
+
     // --- Utilities ---
     Call = 0x30,
     Return = 0x31,

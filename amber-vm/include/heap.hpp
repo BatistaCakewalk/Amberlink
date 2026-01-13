@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <cstddef>
 
+// Offset to distinguish Heap Objects from Constant Pool indices in negative handles
+constexpr int32_t HEAP_HANDLE_OFFSET = 0x40000000;
+
 enum class ObjType {
     STRING,
     ARRAY,
@@ -22,6 +25,15 @@ struct ArrayObject : AmberObject {
     ArrayObject(size_t size) {
         type = ObjType::ARRAY;
         data.resize(size, 0);
+    }
+};
+
+struct InstanceObject : AmberObject {
+    uint32_t class_id;
+    std::vector<int32_t> fields;
+    InstanceObject(uint32_t cls_id, size_t field_count) : class_id(cls_id) {
+        type = ObjType::INSTANCE;
+        fields.resize(field_count, 0);
     }
 };
 

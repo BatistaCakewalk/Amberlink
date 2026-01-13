@@ -31,15 +31,23 @@ void Heap::mark(AmberObject* obj, size_t constant_pool_size) {
     if (obj->type == ObjType::ARRAY) {
         ArrayObject* arr = static_cast<ArrayObject*>(obj);
         for (int32_t val : arr->data) {
-            // Check if val is a handle (negative)
-            if (val < 0) {
-                size_t abs_idx = -val - 1;
-                // Check if it points to heap (not constant pool)
-                if (abs_idx >= constant_pool_size) {
-                    size_t heap_idx = abs_idx - constant_pool_size;
-                    if (heap_idx < objects.size()) {
-                        mark(objects[heap_idx], constant_pool_size);
-                    }
+            // Check if val is a heap handle
+            // Handle logic: val = -(HEAP_HANDLE_OFFSET + heap_idx)
+            // Therefore: -val = HEAP_HANDLE_OFFSET + heap_idx
+            if (val <= -HEAP_HANDLE_OFFSET) {
+                size_t heap_idx = -val - HEAP_HANDLE_OFFSET;
+                if (heap_idx < objects.size()) {
+                    mark(objects[heap_idx], constant_pool_size);
+                }
+            }
+        }
+    } else if (obj->type == ObjType::INSTANCE) {
+        InstanceObject* inst = static_cast<InstanceObject*>(obj);
+        for (int32_t val : inst->fields) {
+            if (val <= -HEAP_HANDLE_OFFSET) {
+                size_t heap_idx = -val - HEAP_HANDLE_OFFSET;
+                if (heap_idx < objects.size()) {
+                    mark(objects[heap_idx], constant_pool_size);
                 }
             }
         }

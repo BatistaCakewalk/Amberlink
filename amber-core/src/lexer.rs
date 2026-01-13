@@ -8,7 +8,7 @@ pub enum Token {
     Identifier(String),
     Number(i64),
     StringLit(String),
-    Equals, Plus, Minus, Star, Slash, Comma, LessThan,
+    Equals, Plus, Minus, Star, Slash, Comma, Dot, LessThan,
     LParen, RParen, LBrace, RBrace, LBracket, RBracket,
     Newline,
     EOF,
@@ -45,6 +45,7 @@ impl Lexer {
                     }
                 }
                 '<' => { tokens.push(Token::LessThan); self.pos += 1; }
+                '.' => { tokens.push(Token::Dot); self.pos += 1; }
                 ',' => { tokens.push(Token::Comma); self.pos += 1; }
                 '(' => { tokens.push(Token::LParen); self.pos += 1; }
                 ')' => { tokens.push(Token::RParen); self.pos += 1; }

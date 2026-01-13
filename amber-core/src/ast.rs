@@ -15,6 +15,9 @@ pub enum Expr {
     NewArray(Box<Expr>), // Size
     ArrayAccess(String, Box<Expr>), // Name, Index
     Call(String, Vec<Expr>),
+    MethodCall(Box<Expr>, String, Vec<Expr>), // Object, Method Name, Args
+    NewInstance(String), // Class Name
+    GetField(Box<Expr>, String), // Object Expr, Field Name
     Binary(Box<Expr>, Op, Box<Expr>),
 }
 
@@ -30,4 +33,6 @@ pub enum Stmt {
     While(Expr, Box<Stmt>),                 // Condition, Body
     Expression(Expr),
     Function(String, Vec<String>, Vec<Stmt>), // Name, Params, Body
+    Class(String, Vec<String>, Vec<Stmt>), // Name, Fields, Methods
+    FieldSet(Box<Expr>, String, Expr), // Object, Field Name, Value
 }
